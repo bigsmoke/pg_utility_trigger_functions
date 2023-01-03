@@ -1,5 +1,4 @@
-# It technically _is_ a dir, but this works well enough to get its name:
-EXTENSION =$(strip $(notdir $(CURDIR)))
+EXTENSION = pg_utility_trigger_functions
 
 DISTVERSION = $(shell sed -n -E "/default_version/ s/^.*'(.*)'.*$$/\1/p" $(EXTENSION).control)
 
