@@ -1,8 +1,8 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.1.1
-pg_readme_generated_at: 2023-01-03 09:13:35.988073+00
-pg_readme_version: 0.3.6
+pg_extension_version: 1.2.0
+pg_readme_generated_at: 2023-02-20 12:05:57.038599+00
+pg_readme_version: 0.5.6
 ---
 
 The `pg_utility_trigger_functions` PostgreSQL extensions bundles together some
@@ -18,7 +18,7 @@ GPL license that I released this under.
 
 ### Routines
 
-#### Function: `copy_fields_from_foreign_table ()`
+#### Function: `copy_fields_from_foreign_table()`
 
 The purpose of the `copy_fields_from_foreign_table()` trigger function is to
 copy the given fields from the row in the given foreign table pointed at by the
@@ -41,7 +41,7 @@ routine for an example of this trigger function in action.
 
 Function return type: `trigger`
 
-#### Function: `fallback_to_fields_from_foreign_table ()`
+#### Function: `fallback_to_fields_from_foreign_table()`
 
 The purpose of the `fallback_to_fields_from_foreign_table()` trigger function
 is to fallback to the given fields from the row in the given foreign table
@@ -67,7 +67,7 @@ routine for an example of this trigger function in action.
 
 Function return type: `trigger`
 
-#### Function: `no_delete ()`
+#### Function: `no_delete()`
 
 Attach the `no_delete()` trigger function to a relationship to disallow
 `DELETE`s from that table when you want to go further than restricting `DELETE`
@@ -76,7 +76,7 @@ only block `DELETE`s in certain circumstances.
 
 Function return type: `trigger`
 
-#### Function: `nullify_columns ()`
+#### Function: `nullify_columns()`
 
 The `nullify_columns()` trigger function is useful if you want to `nullify`
 certain relationship columns in the case of certain trigger events (e.g.
@@ -91,7 +91,7 @@ Function-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
 
-#### Function: `pg_utility_trigger_functions_meta_pgxn ()`
+#### Function: `pg_utility_trigger_functions_meta_pgxn()`
 
 Returns the JSON meta data that has to go into the `META.json` file needed for
 [PGXN—PostgreSQL Extension Network](https://pgxn.org/) packages.
@@ -107,7 +107,7 @@ Function return type: `jsonb`
 
 Function attributes: `STABLE`
 
-#### Function: `pg_utility_trigger_functions_readme ()`
+#### Function: `pg_utility_trigger_functions_readme()`
 
 Generates a `README.md` in Markdown format using the amazing power of the
 `pg_readme` extension.  Temporarily installs `pg_readme` if it is not already
@@ -121,7 +121,7 @@ Function-local settings:
   *  `SET pg_readme.include_view_definitions TO true`
   *  `SET pg_readme.include_routine_definitions_like TO {test__%}`
 
-#### Procedure: `test__copy_fields_from_foreign_table ()`
+#### Procedure: `test__copy_fields_from_foreign_table()`
 
 This is the test routine for the `copy_fields_from_foreign_table()` trigger
 function.
@@ -135,7 +135,7 @@ Procedure-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
 
-```
+```sql
 CREATE OR REPLACE PROCEDURE ext.test__copy_fields_from_foreign_table()
  LANGUAGE plpgsql
  SET search_path TO 'ext', 'public', 'pg_temp'
@@ -192,7 +192,7 @@ end;
 $procedure$
 ```
 
-#### Procedure: `test__fallback_to_fields_from_foreign_table ()`
+#### Procedure: `test__fallback_to_fields_from_foreign_table()`
 
 This is the test routine for the `fallback_to_fields_from_foreign_table()` trigger
 function.
@@ -206,7 +206,7 @@ Procedure-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
 
-```
+```sql
 CREATE OR REPLACE PROCEDURE ext.test__fallback_to_fields_from_foreign_table()
  LANGUAGE plpgsql
  SET search_path TO 'ext', 'public', 'pg_temp'
@@ -265,7 +265,7 @@ end;
 $procedure$
 ```
 
-#### Procedure: `test__no_delete ()`
+#### Procedure: `test__no_delete()`
 
 This routine tests the `no_delete()` trigger function.
 
@@ -279,7 +279,7 @@ Procedure-local settings:
   *  `SET plpgsql.check_asserts TO true`
   *  `SET search_path TO ext, public, pg_temp`
 
-```
+```sql
 CREATE OR REPLACE PROCEDURE ext.test__no_delete()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
@@ -300,7 +300,7 @@ end;
 $procedure$
 ```
 
-#### Procedure: `test__nullify_columns ()`
+#### Procedure: `test__nullify_columns()`
 
 This routine tests the `nullify_columns()` trigger function.
 
@@ -314,7 +314,7 @@ Procedure-local settings:
   *  `SET plpgsql.check_asserts TO true`
   *  `SET search_path TO ext, public, pg_temp`
 
-```
+```sql
 CREATE OR REPLACE PROCEDURE ext.test__nullify_columns()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
@@ -347,7 +347,7 @@ end;
 $procedure$
 ```
 
-#### Procedure: `test__update_updated_at ()`
+#### Procedure: `test__update_updated_at()`
 
 This routine tests the `update_updated_at()` trigger function.
 
@@ -361,7 +361,7 @@ Procedure-local settings:
   *  `SET plpgsql.check_asserts TO true`
   *  `SET search_path TO ext, public, pg_temp`
 
-```
+```sql
 CREATE OR REPLACE PROCEDURE ext.test__update_updated_at()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
@@ -398,7 +398,7 @@ end;
 $procedure$
 ```
 
-#### Function: `update_updated_at ()`
+#### Function: `update_updated_at()`
 
 The `update_updated_at` trigger function sets the `updated_at` column of its
 relation to `now()` whenever that relation is updated (or inserted into).
@@ -416,4 +416,4 @@ Function-local settings:
 
 ## Colophon
 
-This `README.md` for the `pg_utility_trigger_functions` `extension` was automatically generated using the [`pg_readme`](https://github.com/bigsmoke/pg_readme) PostgreSQL extension.
+This `README.md` for the `pg_utility_trigger_functions` extension was automatically generated using the [`pg_readme`](https://github.com/bigsmoke/pg_readme) PostgreSQL extension.

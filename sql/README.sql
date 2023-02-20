@@ -9,6 +9,8 @@ create extension pg_utility_trigger_functions
     with schema ext
     cascade;
 
-select ext.pg_utility_trigger_functions_readme();
+set search_path to ext;
+
+select pg_utility_trigger_functions_readme();
 
 rollback;
