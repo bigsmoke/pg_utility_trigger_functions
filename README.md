@@ -1,9 +1,13 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.2.0
-pg_readme_generated_at: 2023-02-20 12:05:57.038599+00
-pg_readme_version: 0.5.6
+pg_extension_version: 1.2.1
+pg_readme_generated_at: 2023-03-04 11:33:47.58928+00
+pg_readme_version: 0.6.0
 ---
+
+# `pg_utility_trigger_functions`
+
+[![PGXN version](https://badge.fury.io/pg/pg_utility_trigger_functions.svg)](https://badge.fury.io/pg/pg_utility_trigger_functions)
 
 The `pg_utility_trigger_functions` PostgreSQL extensions bundles together some
 pet trigger functions that the extension
@@ -12,7 +16,7 @@ PostgreSQL projects.
 
 Feel free to copy-paste individual functions if you don't want to introduce an
 extension dependency into your own extension/project.  Just try to respect the
-GPL license that I released this under.
+PostgreSQL license that this extension was released under.
 
 ## Object reference
 
