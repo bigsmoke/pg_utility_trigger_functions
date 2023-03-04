@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.2.1
-pg_readme_generated_at: 2023-03-04 11:33:47.58928+00
+pg_extension_version: 1.3.0
+pg_readme_generated_at: 2023-03-04 19:31:18.018734+00
 pg_readme_version: 0.6.0
 ---
 
@@ -24,9 +24,7 @@ PostgreSQL license that this extension was released under.
 
 #### Function: `copy_fields_from_foreign_table()`
 
-The purpose of the `copy_fields_from_foreign_table()` trigger function is to
-copy the given fields from the row in the given foreign table pointed at by the
-given foreign key. It takes up to 4 arguments:
+The purpose of the `copy_fields_from_foreign_table()` trigger function is to copy the given fields from the row in the given foreign table pointed at by the given foreign key. It takes up to 4 arguments:
 
 1. Argument 1 (required): the name of the foreign key column in the local
    table.
@@ -47,10 +45,7 @@ Function return type: `trigger`
 
 #### Function: `fallback_to_fields_from_foreign_table()`
 
-The purpose of the `fallback_to_fields_from_foreign_table()` trigger function
-is to fallback to the given fields from the row in the given foreign table
-pointed at by the given foreign key, if, and only if, these fields are `NULL`
-in the local row.
+The purpose of the `fallback_to_fields_from_foreign_table()` trigger function is to fallback to the given fields from the row in the given foreign table pointed at by the given foreign key, if, and only if, these fields are `NULL` in the local row.
 
 `fallback_to_fields_from_foreign_table()` takes up to 4 arguments:
 
@@ -127,8 +122,7 @@ Function-local settings:
 
 #### Procedure: `test__copy_fields_from_foreign_table()`
 
-This is the test routine for the `copy_fields_from_foreign_table()` trigger
-function.
+This is the test routine for the `copy_fields_from_foreign_table()` trigger function.
 
 The routine name is compliant with the `pg_tst` extension. An intentional
 choice has been made to not _depend_ on the `pg_tst` extension its test runner
@@ -138,56 +132,108 @@ dependencies to a minimum.
 Procedure-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__copy_fields_from_foreign_table()
  LANGUAGE plpgsql
  SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
 AS $procedure$
 declare
+    _a1 record;
+    _a2 record;
     _b record;
+    _c record;
 begin
     create table test__a (
         a_id int
             primary key
-        ,a_val_to_copy text
-        ,a_val_to_not_copy text
+        ,val_1 text
+        ,val_2 text
     );
+
+    insert into test__a (a_id, val_1, val_2) values (1, 'Een', 'Eentje')
+        returning * into _a1;
+    insert into test__a (a_id, val_1, val_2) values (2, 'Twee', 'Tweetje')
+        returning * into _a2;
+
     create table test__b (
         a_id int
             not null
             references test__a(a_id)
-        ,a_val_to_copy text
+        ,val_1 text
             not null
-        ,a_val_to_not_copy text
+        ,val_2 text
         ,b_val text
     );
-    create trigger copy_a_val_from_test__a
-        before insert or update on test__b
-        for each row
-        execute function copy_fields_from_foreign_table(
-            'a_id', 'test__a', 'a_id', '{a_val_to_copy}'
+
+    <<trigger_for_all_same_named_columns>>
+    begin
+        create trigger copy_fields_from_a
+            before insert or update on test__b
+            for each row
+            execute function copy_fields_from_foreign_table(
+                'a_id', 'test__a', 'a_id'  -- 4th trigger func. arg. omitted
+            );
+        insert into test__b (a_id, val_1, val_2, b_val)
+            values (1, null, 'One', 'Uno')
+            returning *
+            into _b;
+
+        assert _b.val_1 = _a1.val_1 and _b.val_2 = _a1.val_2,
+            'NULL value should have coalesced into value from the identically-name foreign table column.';
+        assert _b.val_2 = _a1.val_2,
+            'Local NOT NULL value should have been ruthlessly overwritten.';
+        assert _b.b_val = 'Uno',
+            'Column that doesn''t exist in foreign table should have been ignored.';
+    end trigger_for_all_same_named_columns;
+
+    <<trigger_with_explicit_column_names>>
+    begin
+        create or replace trigger copy_fields_from_a
+            before insert or update on test__b
+            for each row
+            execute function copy_fields_from_foreign_table(
+                'a_id', 'test__a', 'a_id', '{val_1}'
+            );
+
+        insert into test__b (a_id, val_2)
+            values (1, 'waarde')
+            returning *
+            into _b;
+
+        assert _b.val_1 = _a1.val_1,
+            'The specified column should have been overwritten with the foreign value.';
+        assert _b.val_2 = 'waarde',
+            'The non-specified column should be ignored by the trigger.';
+    end trigger_with_explicit_column_names;
+
+    <<trigger_with_hstore_column_mapping>>
+    begin
+        create table test__c (
+            aaa_id int
+                not null
+                references test__a(a_id)
+            ,val_one text
+            ,val_two text
         );
 
-    insert into test__a (a_id, a_val_to_copy, a_val_to_not_copy) values
-        (1, 'Een', 'Eentje'),
-        (2, 'Twee', 'Tweetje');
+        create trigger copy_fields_from_a
+            before insert or update on test__c
+            for each row
+            execute function copy_fields_from_foreign_table(
+                'aaa_id', 'test__a', 'a_id', 'val_one=>val_1, val_two=>val_2'
+            );
 
-    insert into test__b (a_id, b_val)
-        values (1, 'Uno')
-        returning *
-        into _b;
+        insert into test__c (aaa_id, val_one, val_two)
+            values (1, 'Uno', null)
+            returning *
+            into _c;
 
-    assert _b.a_val_to_copy = 'Een';
-    assert _b.a_val_to_not_copy is null;
-
-    insert into test__b (a_id, a_val_to_not_copy, b_val)
-        values (2, 'Dois', 'Twee')
-        returning *
-        into _b;
-
-    assert _b.a_val_to_copy = 'Twee';
-    assert _b.a_val_to_not_copy = 'Dois';
+        assert _c.val_one = _a1.val_1;
+        assert _c.val_two = _a1.val_2;
+    end;
 
     raise transaction_rollback;  -- I could have use any error code, but this one seemed to fit best.
 exception
@@ -198,8 +244,7 @@ $procedure$
 
 #### Procedure: `test__fallback_to_fields_from_foreign_table()`
 
-This is the test routine for the `fallback_to_fields_from_foreign_table()` trigger
-function.
+This is the test routine for the `fallback_to_fields_from_foreign_table()` trigger function.
 
 The routine name is compliant with the `pg_tst` extension. An intentional
 choice has been made to not _depend_ on the `pg_tst` extension its test runner
@@ -209,14 +254,19 @@ dependencies to a minimum.
 Procedure-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__fallback_to_fields_from_foreign_table()
  LANGUAGE plpgsql
  SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
 AS $procedure$
 declare
+    _a1 record;
+    _a2 record;
     _b record;
+    _c record;
 begin
     create table test__a (
         a_id int
@@ -225,6 +275,12 @@ begin
         ,val_2 text
         ,val_3 text
     );
+
+    insert into test__a (a_id, val_1, val_2, val_3) values (1, 'Een', 'Eentje', '1tje')
+        returning * into _a1;
+    insert into test__a (a_id, val_1, val_2, val_3) values (2, 'Twee', 'Tweetje', '2tje')
+        returning * into _a2;
+
     create table test__b (
         a_id int
             not null
@@ -233,34 +289,102 @@ begin
         ,val_2 text
         ,val_3 text
     );
-    create trigger fallback
-        before insert or update on test__b
-        for each row
-        execute function fallback_to_fields_from_foreign_table(
-            'a_id', 'test__a', 'a_id', '{val_1, val_2}'
+
+    <<trigger_for_all_same_named_columns>>
+    begin
+        create trigger fallback
+            before insert or update on test__b
+            for each row
+            execute function fallback_to_fields_from_foreign_table(
+                'a_id', 'test__a', 'a_id'  -- 4th arg. omitted
+            );
+
+        insert into test__b (a_id, val_1, val_2, val_3)
+            values (1, null, null, null)
+            returning *
+            into _b;
+
+        assert _b.val_1 = _a1.val_1 and _b.val_2 = _a1.val_2 and _b.val_3 = _a1.val_3,
+            'NULL values should have coalesced into values from the identically-name foreign table columns.';
+
+        insert into test__b (a_id, val_1, val_2, val_3)
+            values (1, 'One', 'Un', null)
+            returning *
+            into _b;
+
+        assert _b.val_1 = 'One' and _b.val_2 = 'Un',
+            'Local NOT NULL values should have been preserved.';
+    end;
+
+    <<trigger_with_explicit_column_names>>
+    begin
+        create or replace trigger fallback
+            before insert or update on test__b
+            for each row
+            execute function fallback_to_fields_from_foreign_table(
+                'a_id', 'test__a', 'a_id', '{val_1, val_2}'
+            );
+        insert into test__b (a_id, val_1, val_2, val_3)
+            values (1, 'Uno', null, 'a')
+            returning *
+            into _b;
+
+        assert _b.val_1 = 'Uno',
+            'The local NOT NULL value should have been preserved.';
+        assert _b.val_2 = 'Eentje',
+            'The NULL value should have been coalesced into the foreign value.';
+        assert _b.val_3 = 'a',
+            'This value should _not_ have been copied from the foreign table.';
+
+        insert into test__b (a_id, val_1, val_2, val_3)
+            values (2, null, 'Doises', null)
+            returning *
+            into _b;
+
+        assert _b.val_1 = 'Twee',
+            'The NULL value should have coalesced into the foreign value.';
+        assert _b.val_2 = 'Doises',
+            'The local NOT NULL value should have been preserved.';
+        assert _b.val_3 is null,
+            'Nothing should have happened to the column left out of the trigger definition.';
+    end trigger_with_explicit_column_names;
+
+    <<trigger_with_hstore_column_mapping>>
+    begin
+        create table test__c (
+            aaa_id int
+                not null
+                references test__a(a_id)
+            ,val_one text
+            ,val_two text
+            ,val_three text
+            ,val_3 text
         );
+        create trigger fallback
+            before insert or update on test__c
+            for each row
+            execute function fallback_to_fields_from_foreign_table(
+                'aaa_id', 'test__a', 'a_id', 'val_one=>val_1, val_two=>val_2, val_3=>val_3'
+            );
 
-    insert into test__a (a_id, val_1, val_2, val_3) values
-        (1, 'Een', 'Eentje', '1tje'),
-        (2, 'Twee', 'Tweetje', '2tje');
+        insert into test__c (aaa_id, val_one, val_two, val_3)
+            values (1, 'Uno', null, 'a')
+            returning *
+            into _c;
 
-    insert into test__b (a_id, val_1, val_2, val_3)
-        values (1, 'Uno', null, 'a')
-        returning *
-        into _b;
+        assert _c.val_one = 'Uno';
+        assert _c.val_two = _a1.val_2;
+        assert _c.val_3 = 'a';
 
-    assert _b.val_1 = 'Uno';
-    assert _b.val_2 = 'Eentje';
-    assert _b.val_3 = 'a';
+        insert into test__c (aaa_id, val_one, val_two, val_3)
+            values (2, null, 'Doises', null)
+            returning *
+            into _c;
 
-    insert into test__b (a_id, val_1, val_2, val_3)
-        values (2, null, 'Doises', null)
-        returning *
-        into _b;
-
-    assert _b.val_1 = 'Twee';
-    assert _b.val_2 = 'Doises';
-    assert _b.val_3 is null;
+        assert _c.val_one = _a2.val_1;
+        assert _c.val_two = 'Doises';
+        assert _c.val_3 = _a2.val_3;
+    end trigger_with_hstore_column_mapping;
 
     raise transaction_rollback;  -- I could have use any error code, but this one seemed to fit best.
 exception

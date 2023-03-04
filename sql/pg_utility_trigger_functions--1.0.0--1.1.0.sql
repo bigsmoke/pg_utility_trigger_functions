@@ -24,7 +24,6 @@ begin
     _foreign_table := tg_argv[1];
     _foreign_target_column := tg_argv[2];
     if tg_nargs > 3 then
-        -- TODO: hstore support
         _foreign_fields := tg_argv[3]::name[];
     else
         _foreign_fields := (
@@ -182,7 +181,6 @@ begin
     _foreign_table := tg_argv[1];
     _foreign_target_column := tg_argv[2];
     if tg_nargs > 3 then
-        -- TODO: hstore support
         _foreign_fields := tg_argv[3]::name[];
     else
         _foreign_fields := (
