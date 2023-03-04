@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.3.0
-pg_readme_generated_at: 2023-03-04 19:31:18.018734+00
+pg_extension_version: 1.3.1
+pg_readme_generated_at: 2023-03-04 19:48:24.74596+00
 pg_readme_version: 0.6.0
 ---
 
@@ -26,16 +26,18 @@ PostgreSQL license that this extension was released under.
 
 The purpose of the `copy_fields_from_foreign_table()` trigger function is to copy the given fields from the row in the given foreign table pointed at by the given foreign key. It takes up to 4 arguments:
 
-1. Argument 1 (required): the name of the foreign key column in the local
+1. (required) the name of the foreign key column in the local table.
+2. (required) the `regclass` (can be passed as `oid` or `name`) of the foreign
+   relationship.
+3. (required) the name of the identifying key column in the foreign
    table.
-2. Argument 2 (required): the `regclass` (can be passed as `oid` or `name`) of
-   the foreign relationship.
-3. Argument 3 (required): the name of the identifying key column in the foreign
-   table.
-4. Argument 4 (optional): an array with the names of the columns that should be
-   copied.  If the fourth argument is omitted, all the columns (except for the
-   foreign key columns specified as argument 1 and 3) will be copied.  Remember:
-   more often than not, explicit is better than implicit!
+4. (optional) the columns that should be copied.  This argument can be either:
+   - omitted, so that all the columns (except for the foreign key columns
+     specified as argument 1 and 3) will be copied (but remember that, more
+     often than not, explicit is better than implicit);
+   - an array with the names of the columns that should be copied; or
+   - a `hstore` with the names of the columns in the local table as keys and
+     the names of the corresponding columns in the foreign table as values.
 
 See the
 [`test__copy_fields_from_foreign_table()`](#procedure-test__copy_fields_from_foreign_table)
@@ -49,16 +51,18 @@ The purpose of the `fallback_to_fields_from_foreign_table()` trigger function is
 
 `fallback_to_fields_from_foreign_table()` takes up to 4 arguments:
 
-1. Argument 1 (required): the name of the foreign key column in the local
+1. (required): the name of the foreign key column in the local table.
+2. (required): the `regclass` (can be passed as `oid` or `name`) of the foreign
+   relationship.
+3. (required): the name of the identifying key column in the foreign
    table.
-2. Argument 2 (required): the `regclass` (can be passed as `oid` or `name`) of
-   the foreign relationship.
-3. Argument 3 (required): the name of the identifying key column in the foreign
-   table.
-4. Argument 4 (optional): an array with the names of the columns that should be
-   coalesced to.  If the fourth argument is omitted, all the columns (except
-    for the foreign key columns specified as argument 1 and 3) will be copied.
-    Remember: more often than not, explicit is better than implicit!
+4. (optional) the columns that should be copied.  This argument can be either:
+   - omitted, so that all the columns (except for the foreign key columns
+     specified as argument 1 and 3) will be copied (but remember that, more
+     often than not, explicit is better than implicit);
+   - an array with the names of the columns that should be copied; or
+   - a `hstore` with the names of the columns in the local table as keys and
+     the names of the corresponding columns in the foreign table as values.
 
 See the
 [`test__fallback_to_fields_from_foreign_table()`](#routine-test__fallback_to_fields_from_foreign_table)
