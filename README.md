@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.3.1
-pg_readme_generated_at: 2023-03-04 19:48:24.74596+00
+pg_extension_version: 1.4.0
+pg_readme_generated_at: 2023-03-17 09:49:56.283293+00
 pg_readme_version: 0.6.0
 ---
 
@@ -123,6 +123,20 @@ Function-local settings:
   *  `SET search_path TO ext, public, pg_temp`
   *  `SET pg_readme.include_view_definitions TO true`
   *  `SET pg_readme.include_routine_definitions_like TO {test__%}`
+
+#### Function: `set_installed_extension_version_from_name()`
+
+Sets the installed extension version string in the column named in the second argument for the extension named in the second argument.
+
+See the [`test__set_installed_extension_version_from_name()` test
+procedure](#procedure-test__set_installed_extension_version_from_name) for a
+working example of this trigger function.
+
+Function return type: `trigger`
+
+Function-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
 
 #### Procedure: `test__copy_fields_from_foreign_table()`
 
@@ -475,6 +489,65 @@ begin
     raise transaction_rollback;  -- I could have use any error code, but this one seemed to fit best.
 exception
     when transaction_rollback then
+end;
+$procedure$
+```
+
+#### Procedure: `test__set_installed_extension_version_from_name()`
+
+Procedure-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
+  *  `SET pg_readme.include_this_routine_definition TO true`
+
+```sql
+CREATE OR REPLACE PROCEDURE ext.test__set_installed_extension_version_from_name()
+ LANGUAGE plpgsql
+ SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
+ SET "pg_readme.include_this_routine_definition" TO 'true'
+AS $procedure$
+declare
+    _expect record;
+    _actual record;
+begin
+    create table test__tbl(
+        ext_name name
+            not null
+        ,ext_version text
+            not null
+    );
+
+    create trigger set_installed_extension_version_from_name
+        before insert on test__tbl
+        for each row
+        execute function set_installed_extension_version_from_name(
+            'ext_name'
+            ,'ext_version'
+        );
+
+    _expect := row(
+        'pg_utility_trigger_functions'
+        ,(select extversion from pg_extension where extname = 'pg_utility_trigger_functions')
+    )::test__tbl;
+
+    insert into test__tbl
+        (ext_name)
+    values
+        (_expect.ext_name)
+    returning
+        *
+    into
+        _actual
+    ;
+
+    assert _actual = _expect,
+        format('%s ≠ %s', _actual, _expect);
+
+    raise assert_failure;
+exception
+    when assert_failure then
 end;
 $procedure$
 ```
