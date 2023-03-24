@@ -1,8 +1,8 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.4.0
-pg_readme_generated_at: 2023-03-17 09:49:56.283293+00
-pg_readme_version: 0.6.0
+pg_extension_version: 1.5.0
+pg_readme_generated_at: 2023-03-24 22:25:39.749099+00
+pg_readme_version: 0.6.1
 ---
 
 # `pg_utility_trigger_functions`
@@ -21,6 +21,14 @@ PostgreSQL license that this extension was released under.
 ## Object reference
 
 ### Routines
+
+#### Function: `coalesce_sibling_fields()`
+
+Function return type: `trigger`
+
+Function-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
 
 #### Function: `copy_fields_from_foreign_table()`
 
@@ -137,6 +145,59 @@ Function return type: `trigger`
 Function-local settings:
 
   *  `SET search_path TO ext, public, pg_temp`
+
+#### Procedure: `test__coalesce_sibling_fields()`
+
+Procedure-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
+  *  `SET pg_readme.include_this_routine_definition TO true`
+
+```sql
+CREATE OR REPLACE PROCEDURE ext.test__coalesce_sibling_fields()
+ LANGUAGE plpgsql
+ SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
+ SET "pg_readme.include_this_routine_definition" TO 'true'
+AS $procedure$
+declare
+    _rec record;
+begin
+    create table test__tbl (a text, b text);
+    create trigger coalesce_a_to_b
+        before insert on test__tbl
+        for each row
+        execute function coalesce_sibling_fields('a => b');
+
+    insert into test__tbl
+        (a, b)
+    values
+        (null, 'teenager')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'teenager';
+
+    insert into test__tbl
+        (a, b)
+    values
+        ('adult', 'teenager')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'adult';
+
+    raise transaction_rollback;
+exception
+    when transaction_rollback then
+end;
+$procedure$
+```
 
 #### Procedure: `test__copy_fields_from_foreign_table()`
 
