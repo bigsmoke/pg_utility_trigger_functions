@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.5.1
-pg_readme_generated_at: 2023-03-30 10:13:02.062936+01
+pg_extension_version: 1.6.0
+pg_readme_generated_at: 2023-03-30 17:12:55.282797+01
 pg_readme_version: 0.6.1
 ---
 
@@ -95,6 +95,30 @@ certain relationship columns in the case of certain trigger events (e.g.
 
 `nullify_columns()` takes on of more column names that will be nullified when
 the trigger function is executed.
+
+Function return type: `trigger`
+
+Function-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+
+#### Function: `overwrite_fields_in_referencing_table()`
+
+Copy specific (or all same-named) field values from this table to a table that references it.
+
+`overwrite_fields_in_referencing_table()` takes 3 or 4 arguments:
+
+1. Argument 1 (required): the identifying column referenced by the foreign key
+   in the other table.
+2. Argument 2 (required): the table that references the present table.
+3. Argument 3 (required): the foreign key column in the other table.
+4. Argument 4 (optional): an array with the names of the columns that should be
+   copied.  If the fourth argument is omitted, all the columns (except for the
+   foreign key columns specified as argument 1 and 3) will be copied.  Remember:
+   more often than not, explicit is better than implicit!
+
+See the [`test__overwrite_fields_in_referencing_table()`](#procedure-test__overwrite_fields_in_referencing_table)
+routine for examples of this trigger function in action.
 
 Function return type: `trigger`
 
@@ -550,6 +574,159 @@ begin
     raise transaction_rollback;  -- I could have use any error code, but this one seemed to fit best.
 exception
     when transaction_rollback then
+end;
+$procedure$
+```
+
+#### Procedure: `test__overwrite_fields_in_referencing_table()`
+
+Procedure-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
+  *  `SET pg_readme.include_this_routine_definition TO true`
+
+```sql
+CREATE OR REPLACE PROCEDURE ext.test__overwrite_fields_in_referencing_table()
+ LANGUAGE plpgsql
+ SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
+ SET "pg_readme.include_this_routine_definition" TO 'true'
+AS $procedure$
+declare
+    _a1 record;
+    _a2 record;
+    _a3 record;
+    _b1 record;
+    _b2 record;
+    _b3 record;
+begin
+    create table test__a (
+        a_id int
+            primary key
+        ,val_1 text
+        ,val_2 text
+    );
+
+    insert into test__a (a_id, val_1, val_2) values (1, 'Een', 'Eentje')
+        returning * into _a1;
+    insert into test__a (a_id, val_1, val_2) values (2, 'Twee', 'Tweetje')
+        returning * into _a2;
+    insert into test__a (a_id, val_1, val_2) values (3, 'Drie', 'Drietje')
+        returning * into _a3;
+
+    create table test__b (
+        a_id int
+            not null
+            references test__a(a_id)
+        ,val_1 text
+            not null
+        ,val_2 text
+        ,b_val text
+    );
+
+    insert into test__b (a_id, val_1, val_2, b_val)
+    select a.a_id, a.val_1, a.val_2, 'One' from test__a as a where a.a_id = _a1.a_id
+    ;
+    insert into test__b (a_id, val_1, val_2, b_val)
+    select a.a_id, a.val_1, a.val_2, 'Two' from test__a as a where a.a_id = _a2.a_id
+    ;
+    insert into test__b (a_id, val_1, val_2, b_val)
+    select a.a_id, a.val_1, a.val_2, 'Three' from test__a as a where a.a_id = _a3.a_id
+    ;
+
+    <<trigger_for_all_same_named_columns>>
+    begin
+        create trigger overwrite_fields_in_referencing_table
+            after update on test__a
+            for each row
+            execute function overwrite_fields_in_referencing_table(
+                'a_id', 'test__b', 'a_id'  -- 4th trigger func. arg. omitted
+            );
+
+        update
+            test__a
+        set
+            val_1 = 'Uno'
+            ,val_2 = 'Unoooo'
+        where
+            a_id = _a1.a_id
+        returning
+            *
+        into
+            _a1
+        ;
+        select b.* into _b1 from test__b as b where b.a_id = _a1.a_id;
+
+        assert _a1.val_1 = _b1.val_1;
+        assert _a1.val_2 = _b1.val_2;
+    end trigger_for_all_same_named_columns;
+
+    <<trigger_with_column_name_array>>
+    begin
+        create or replace trigger overwrite_fields_in_referencing_table
+            after update on test__a
+            for each row
+            execute function overwrite_fields_in_referencing_table(
+                'a_id', 'test__b', 'a_id', '{val_1}'
+            );
+
+        select b.* into _b2 from test__b as b where b.a_id = _a2.a_id;
+        assert _a2.val_1 = _b2.val_1;
+        assert _a2.val_2 = _b2.val_2;
+
+        update
+            test__a
+        set
+            val_1 = 'Deux'
+            ,val_2 = 'Petit deux'
+        where
+            a_id = _a2.a_id
+        returning
+            *
+        into
+            _a2
+        ;
+        assert _a2.val_1 != _b2.val_1;
+        assert _a2.val_2 != _b2.val_2;
+
+        select b.* into _b2 from test__b as b where b.a_id = _a2.a_id;
+        assert _a2.val_1 = _b2.val_1;
+        assert _a2.val_2 != _b2.val_2;
+    end trigger_with_column_name_array;
+
+    <<trigger_with_hstore_column_mapping>>
+    begin
+        create or replace trigger overwrite_fields_in_referencing_table
+            after update on test__a
+            for each row
+            execute function overwrite_fields_in_referencing_table(
+                'a_id', 'test__b', 'a_id', 'val_1 => val_1'
+            );
+
+        select b.* into _b3 from test__b as b where b.a_id = _a3.a_id;
+        assert _a3.val_1 = _b3.val_1;
+        assert _a3.val_2 = _b3.val_2;
+
+        update
+            test__a
+        set
+            val_1 = 'Tres'
+            ,val_2 = 'Petit tres'
+        where
+            a_id = _a3.a_id
+        returning
+            *
+        into
+            _a3
+        ;
+        assert _a3.val_1 != _b3.val_1;
+        assert _a3.val_2 != _b3.val_2;
+
+        select b.* into _b3 from test__b as b where b.a_id = _a3.a_id;
+        assert _a3.val_1 = _b3.val_1;
+        assert _a3.val_2 != _b3.val_2;
+    end trigger_with_hstore_column_mapping;
 end;
 $procedure$
 ```

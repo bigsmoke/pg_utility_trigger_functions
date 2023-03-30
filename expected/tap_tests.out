@@ -9,6 +9,7 @@ call test__no_delete();
 call test__nullify_columns();
 call test__copy_fields_from_foreign_table();
 call test__fallback_to_fields_from_foreign_table();
+call test__overwrite_fields_in_referencing_table();
 call test__set_installed_extension_version_from_name();
 call test__coalesce_sibling_fields();
 rollback;
