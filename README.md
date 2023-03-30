@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.5.0
-pg_readme_generated_at: 2023-03-24 22:25:39.749099+00
+pg_extension_version: 1.5.1
+pg_readme_generated_at: 2023-03-30 10:13:02.062936+01
 pg_readme_version: 0.6.1
 ---
 
@@ -572,43 +572,78 @@ AS $procedure$
 declare
     _expect record;
     _actual record;
+    _msg text;
+    _hint text;
 begin
     create table test__tbl(
-        ext_name name
-            not null
+        id serial primary key
+        ,ext_name name
         ,ext_version text
-            not null
     );
+
+    <<missing_when_condition_in_trigger>>
+    begin
+        create trigger set_installed_extension_version_from_name
+            before insert on test__tbl
+            for each row
+            execute function set_installed_extension_version_from_name(
+                'ext_name'
+                ,'ext_version'
+            );
+
+        insert into test__tbl default values;
+
+        raise assert_failure using
+            message = 'The trigger should have raised an exception about an unexpected NULL.';
+    exception
+        when null_value_not_allowed then
+            get stacked diagnostics
+                _msg := message_text
+                ,_hint := pg_exception_hint
+            ;
+            assert _msg = format('Unexpected %I.test__tbl.ext_name IS NULL', current_schema);
+            assert _hint = 'Try adding a `WHEN (NEW.ext_name IS NOT NULL)` condition to the trigger.';
+    end missing_when_condition_in_trigger;
 
     create trigger set_installed_extension_version_from_name
         before insert on test__tbl
         for each row
+        when (NEW.ext_name is not null)
         execute function set_installed_extension_version_from_name(
             'ext_name'
             ,'ext_version'
         );
 
+    _expect := row(2, null, null)::test__tbl;
+    insert into test__tbl default values returning * into _actual;
+    assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+
     _expect := row(
-        'pg_utility_trigger_functions'
+        3
+        ,'pg_utility_trigger_functions'
         ,(select extversion from pg_extension where extname = 'pg_utility_trigger_functions')
     )::test__tbl;
+    insert into test__tbl (ext_name) values (_expect.ext_name) returning * into _actual;
+    assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
 
-    insert into test__tbl
-        (ext_name)
-    values
-        (_expect.ext_name)
-    returning
-        *
-    into
-        _actual
-    ;
+    <<not_installed_extension_name>>
+    begin
+        insert into test__tbl (ext_name) values ('invalid_extension_name');
 
-    assert _actual = _expect,
-        format('%s ≠ %s', _actual, _expect);
+        raise assert_failure using
+            message = 'The trigger should have raised an exception about unrecognized extension.';
+    exception
+        when no_data_found then
+            get stacked diagnostics _msg := message_text;
+            assert _msg = format(
+                'Could not find extension invalid_extension_name referenced in %I.test__tbl.ext_name'
+                ,current_schema
+            );
+    end not_installed_extension_name;
 
-    raise assert_failure;
+    raise transaction_rollback;
 exception
-    when assert_failure then
+    when transaction_rollback then
 end;
 $procedure$
 ```
