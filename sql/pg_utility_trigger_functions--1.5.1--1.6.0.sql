@@ -242,6 +242,10 @@ begin
         assert _a3.val_1 = _b3.val_1;
         assert _a3.val_2 != _b3.val_2;
     end trigger_with_hstore_column_mapping;
+
+    raise transaction_rollback;
+exception
+    when transaction_rollback then
 end;
 $$;
 

@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.6.1
-pg_readme_generated_at: 2023-03-31 11:37:55.791109+01
+pg_extension_version: 1.7.0
+pg_readme_generated_at: 2023-03-31 15:11:55.002745+01
 pg_readme_version: 0.6.1
 ---
 
@@ -95,6 +95,27 @@ certain relationship columns in the case of certain trigger events (e.g.
 
 `nullify_columns()` takes on of more column names that will be nullified when
 the trigger function is executed.
+
+Function return type: `trigger`
+
+Function-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+
+#### Function: `overwrite_composite_field_in_referencing_table()`
+
+Copy all the latest field values from this table to a composite field in another table that references it.
+
+`overwrite_composite_field_in_referencing_table()` takes 3 arguments:
+
+1. Argument 1 (required): the identifying column referenced by the same-named
+   foreign key in the composite field in the other table.
+2. Argument 2 (required): the table with the composite field that references the
+   present table.
+3. Argument 3 (required): the name of the composite field in the foreign table.
+   That field must have all the same subfields
+
+See the [`test__overwrite_composite_field_in_referencing_table()`](#procedure-test__overwrite_composite_field_in_referencing_table) routine for examples of this trigger function in action.
 
 Function return type: `trigger`
 
@@ -582,6 +603,91 @@ end;
 $procedure$
 ```
 
+#### Procedure: `test__overwrite_composite_field_in_referencing_table()`
+
+Procedure-local settings:
+
+  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET plpgsql.check_asserts TO true`
+  *  `SET pg_readme.include_this_routine_definition TO true`
+
+```sql
+CREATE OR REPLACE PROCEDURE ext.test__overwrite_composite_field_in_referencing_table()
+ LANGUAGE plpgsql
+ SET search_path TO 'ext', 'public', 'pg_temp'
+ SET "plpgsql.check_asserts" TO 'true'
+ SET "pg_readme.include_this_routine_definition" TO 'true'
+AS $procedure$
+declare
+    _a1 record;
+    _b1 record;
+begin
+    create table test__a (
+        a_id int
+            primary key
+        ,val_1 text
+        ,val_2 text
+    );
+
+    insert into test__a (a_id, val_1, val_2) values (1, 'Een', 'Eentje')
+        returning * into _a1;
+    insert into test__a (a_id, val_1, val_2) values (2, 'Twee', 'Tweetje');
+    insert into test__a (a_id, val_1, val_2) values (3, 'Drie', 'Drietje');
+
+    create table test__b (
+        c_id int
+            primary key
+        ,c_col text
+        ,a test__a
+            not null
+    );
+
+    insert into test__b
+        (c_id, c_col, a)
+    select
+        1, 'Ein', row(a.*)::test__a
+    from
+        test__a as a
+    where
+        a.a_id = _a1.a_id
+    returning
+        (test__b.a).*
+    into
+        _b1
+    ;
+    assert _a1 = _b1;
+
+    create or replace trigger overwrite_composite_field_in_referencing_table
+        after update on test__a
+        for each row
+        execute function overwrite_composite_field_in_referencing_table('a_id', 'test__b', 'a');
+
+    update
+        test__a
+    set
+        val_1 = 'still 1'
+        ,val_2 = 'still 2'
+    where
+        a_id = _a1.a_id
+    returning
+        *
+    into
+        _a1
+    ;
+    assert _a1 != _b1,
+        'The `test__a` record should have been updated (and out of sync with the not yet reretrieved'
+        || ' composite `test__b.a` field.';
+
+    select (b.a).* into _b1 from test__b as b where c_id = 1;
+    assert _a1 = _b1;
+
+    raise transaction_rollback;
+exception
+    when transaction_rollback then
+end;
+$procedure$
+```
+
 #### Procedure: `test__overwrite_fields_in_referencing_table()`
 
 Procedure-local settings:
@@ -731,6 +837,10 @@ begin
         assert _a3.val_1 = _b3.val_1;
         assert _a3.val_2 != _b3.val_2;
     end trigger_with_hstore_column_mapping;
+
+    raise transaction_rollback;
+exception
+    when transaction_rollback then
 end;
 $procedure$
 ```
