@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.6.0
-pg_readme_generated_at: 2023-03-30 17:12:55.282797+01
+pg_extension_version: 1.6.1
+pg_readme_generated_at: 2023-03-31 11:37:55.791109+01
 pg_readme_version: 0.6.1
 ---
 
@@ -112,10 +112,14 @@ Copy specific (or all same-named) field values from this table to a table that r
    in the other table.
 2. Argument 2 (required): the table that references the present table.
 3. Argument 3 (required): the foreign key column in the other table.
-4. Argument 4 (optional): an array with the names of the columns that should be
-   copied.  If the fourth argument is omitted, all the columns (except for the
-   foreign key columns specified as argument 1 and 3) will be copied.  Remember:
-   more often than not, explicit is better than implicit!
+4. Argument 4 (optional): the columns that should be copied.  This argument can
+   be either:
+   - omitted, so that all the columns (except for the foreign key columns
+     specified as argument 1 and 3) will be copied (but remember that, more
+     often than not, explicit is better than implicit);
+   - an array with the same-named columns that should be copied; or
+   - a `hstore` with the names of the ccolumns in the local table as keys and
+     the names of the corresponding columns in the referencing table as values.
 
 See the [`test__overwrite_fields_in_referencing_table()`](#procedure-test__overwrite_fields_in_referencing_table)
 routine for examples of this trigger function in action.
