@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.7.0
-pg_readme_generated_at: 2023-03-31 15:11:55.002745+01
+pg_extension_version: 1.7.1
+pg_readme_generated_at: 2023-04-06 12:04:53.388599+01
 pg_readme_version: 0.6.1
 ---
 
@@ -896,41 +896,75 @@ begin
             assert _hint = 'Try adding a `WHEN (NEW.ext_name IS NOT NULL)` condition to the trigger.';
     end missing_when_condition_in_trigger;
 
-    create trigger set_installed_extension_version_from_name
-        before insert on test__tbl
-        for each row
-        when (NEW.ext_name is not null)
-        execute function set_installed_extension_version_from_name(
-            'ext_name'
-            ,'ext_version'
+    <<with_explicit_column_names>>
+    begin
+        create trigger set_installed_extension_version_from_name
+            before insert on test__tbl
+            for each row
+            when (NEW.ext_name is not null)
+            execute function set_installed_extension_version_from_name(
+                'ext_name'
+                ,'ext_version'
+            );
+
+        _expect := row(2, null, null)::test__tbl;
+        insert into test__tbl default values returning * into _actual;
+        assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+
+        _expect := row(
+            3
+            ,'pg_utility_trigger_functions'
+            ,(select extversion from pg_extension where extname = 'pg_utility_trigger_functions')
+        )::test__tbl;
+        insert into test__tbl (ext_name) values (_expect.ext_name) returning * into _actual;
+        assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+
+        <<not_installed_extension_name>>
+        begin
+            insert into test__tbl (ext_name) values ('invalid_extension_name');
+
+            raise assert_failure using
+                message = 'The trigger should have raised an exception about unrecognized extension.';
+        exception
+            when no_data_found then
+                get stacked diagnostics _msg := message_text;
+                assert _msg = format(
+                    'Could not find extension invalid_extension_name referenced in %I.test__tbl.ext_name'
+                    ,current_schema
+                );
+        end not_installed_extension_name;
+    end with_explicit_column_names;
+
+    <<with_default_column_names>>
+    begin
+        create table test__tbl2 (
+            id serial primary key
+            ,pg_extension_name name
+            ,pg_extension_version text
         );
 
-    _expect := row(2, null, null)::test__tbl;
-    insert into test__tbl default values returning * into _actual;
-    assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+        create trigger set_installed_extension_version_from_name
+            before insert on test__tbl2
+            for each row
+            when (NEW.pg_extension_name is not null)
+            execute function set_installed_extension_version_from_name();
 
-    _expect := row(
-        3
-        ,'pg_utility_trigger_functions'
-        ,(select extversion from pg_extension where extname = 'pg_utility_trigger_functions')
-    )::test__tbl;
-    insert into test__tbl (ext_name) values (_expect.ext_name) returning * into _actual;
-    assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+        _expect := row(
+            1
+            ,'pg_utility_trigger_functions'
+            ,(select extversion from pg_extension where extname = 'pg_utility_trigger_functions')
+        )::test__tbl2;
 
-    <<not_installed_extension_name>>
-    begin
-        insert into test__tbl (ext_name) values ('invalid_extension_name');
+        insert into test__tbl2
+            (pg_extension_name)
+        values
+            (_expect.pg_extension_name)
+        returning *
+        into _actual
+        ;
 
-        raise assert_failure using
-            message = 'The trigger should have raised an exception about unrecognized extension.';
-    exception
-        when no_data_found then
-            get stacked diagnostics _msg := message_text;
-            assert _msg = format(
-                'Could not find extension invalid_extension_name referenced in %I.test__tbl.ext_name'
-                ,current_schema
-            );
-    end not_installed_extension_name;
+        assert _actual = _expect, format('%s ≠ %s', _actual, _expect);
+    end with_default_column_names;
 
     raise transaction_rollback;
 exception
