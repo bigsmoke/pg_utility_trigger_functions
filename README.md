@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.7.2
-pg_readme_generated_at: 2023-04-15 16:53:14.501977+01
+pg_extension_version: 1.7.3
+pg_readme_generated_at: 2023-04-21 16:22:34.262257+01
 pg_readme_version: 0.6.1
 ---
 
@@ -23,6 +23,22 @@ PostgreSQL license that this extension was released under.
 ### Routines
 
 #### Function: `coalesce_sibling_fields()`
+
+When a given column is `NULL`, this trigger function will coalesce it with one or more other given columns.
+
+`coalesce_sibling_fields()` trigger function should be able to function in 3
+different modes, depending on its argument given in the `CREATE TRIGGER`
+definition:
+
+  1. When multiple non-array arguments are given, the second argument and so
+     forth will be the fallback values for the first value.
+  2. When one or more array arguments are given, each of these array will be
+     treated as the different function arguments as in the second mode.
+  3. When a single `hstore` argument is supplied, each key in that `hstore` is
+     treated as the preferred column and each value as the fallback value, as in
+     `key = coalesce(key, value)`.
+
+Currently, as of version 1.7.3, only the third of these three modes is implemented.
 
 Function return type: `trigger`
 
@@ -88,18 +104,16 @@ Function-local settings:
 
 #### Function: `no_delete()`
 
-Attach the `no_delete()` trigger function to a relationship to disallow
-`DELETE`s from that table when you want to go further than restricting `DELETE`
-permissions via `GRANT`. Add a `WHEN` condition to the trigger if you want to
-only block `DELETE`s in certain circumstances.
+Attach the `no_delete()` trigger function to a relationship to disallow `DELETE`s from that table when you want to go further than restricting `DELETE` permissions via `GRANT`.
+
+Add a `WHEN` condition to the trigger if you want to only block `DELETE`s in
+certain circumstances.
 
 Function return type: `trigger`
 
 #### Function: `nullify_columns()`
 
-The `nullify_columns()` trigger function is useful if you want to `nullify`
-certain relationship columns in the case of certain trigger events (e.g.
-`UPDATE`) or on certain `WHEN` conditions.
+The `nullify_columns()` trigger function is useful if you want to `nullify` certain relationship columns in the case of certain trigger events (e.g.  `UPDATE`) or on certain `WHEN` conditions.
 
 `nullify_columns()` takes on of more column names that will be nullified when
 the trigger function is executed.
@@ -161,8 +175,7 @@ Function-local settings:
 
 #### Function: `pg_utility_trigger_functions_meta_pgxn()`
 
-Returns the JSON meta data that has to go into the `META.json` file needed for
-[PGXN—PostgreSQL Extension Network](https://pgxn.org/) packages.
+Returns the JSON meta data that has to go into the `META.json` file needed for PGXN—PostgreSQL Extension Network—packages.
 
 The `Makefile` includes a recipe to allow the developer to: `make META.json` to
 refresh the meta file with the function's current output, including the
@@ -177,9 +190,7 @@ Function attributes: `STABLE`
 
 #### Function: `pg_utility_trigger_functions_readme()`
 
-Generates a `README.md` in Markdown format using the amazing power of the
-`pg_readme` extension.  Temporarily installs `pg_readme` if it is not already
-installed in the current database.
+Generates a `README.md` in Markdown format using the amazing power of the `pg_readme` extension.  Temporarily installs `pg_readme` if it is not already installed in the current database.
 
 Function return type: `text`
 
@@ -1034,8 +1045,7 @@ $procedure$
 
 #### Function: `update_updated_at()`
 
-The `update_updated_at` trigger function sets the `updated_at` column of its
-relation to `now()` whenever that relation is updated (or inserted into).
+The `update_updated_at` trigger function sets the `updated_at` column of its relation to `now()` whenever that relation is updated (or inserted into).
 
 `update_updated_at()` uses `now()` without a schema qualifier rather than
 `pg_catalog.now()`, to allow the mocking of now by manipulating the function's
