@@ -433,9 +433,13 @@ $markdown$;
 
 do $$
 begin
-    execute 'ALTER DATABASE ' || current_database()
-        || ' SET pg_utility_trigger_functions.readme_url TO '
-        || quote_literal('https://github.com/bigsmoke/pg_utility_trigger_functions/blob/master/README.md');
+    if (select rolsuper from pg_catalog.pg_roles where rolname = current_user) then
+        execute format(
+            'ALTER DATABASE %I SET pg_utility_trigger_functions.readme_url TO %L'
+            ,current_database()
+            ,'https://github.com/bigsmoke/pg_utility_trigger_functions/blob/master/README.md'
+        );
+    end if;
 end;
 $$;
 
