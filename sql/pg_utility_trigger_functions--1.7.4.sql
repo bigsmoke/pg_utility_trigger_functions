@@ -69,7 +69,7 @@ create or replace function pg_utility_trigger_functions_meta_pgxn()
         ,'provides'
         ,('{
             "pg_utility_trigger_functions": {
-                "file": "pg_utility_trigger_functions--1.7.3.sql",
+                "file": "pg_utility_trigger_functions--1.7.4.sql",
                 "version": "' || (
                     select
                         pg_extension.extversion
