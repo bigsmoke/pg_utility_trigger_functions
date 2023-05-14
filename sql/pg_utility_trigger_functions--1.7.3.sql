@@ -25,7 +25,7 @@ $markdown$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace function pg_utility_trigger_functions_meta_pgxn()
+create function pg_utility_trigger_functions_meta_pgxn()
     returns jsonb
     stable
     language sql
@@ -138,7 +138,7 @@ $$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace function pg_utility_trigger_functions_readme()
+create function pg_utility_trigger_functions_readme()
     returns text
     volatile
     set search_path from current
@@ -466,7 +466,7 @@ $$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace function copy_fields_from_foreign_table()
+create function copy_fields_from_foreign_table()
     returns trigger
     set search_path from current
     language plpgsql
@@ -578,7 +578,7 @@ $md$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace procedure test__copy_fields_from_foreign_table()
+create procedure test__copy_fields_from_foreign_table()
     set search_path from current
     set plpgsql.check_asserts to true
     language plpgsql
@@ -695,7 +695,7 @@ $md$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace function fallback_to_fields_from_foreign_table()
+create function fallback_to_fields_from_foreign_table()
     returns trigger
     set search_path from current
     language plpgsql
@@ -812,7 +812,7 @@ $md$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace procedure test__fallback_to_fields_from_foreign_table()
+create procedure test__fallback_to_fields_from_foreign_table()
     set search_path from current
     set plpgsql.check_asserts to true
     language plpgsql
@@ -1256,7 +1256,7 @@ $md$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace procedure test__overwrite_composite_field_in_referencing_table()
+create procedure test__overwrite_composite_field_in_referencing_table()
     set search_path from current
     set plpgsql.check_asserts to true
     set pg_readme.include_this_routine_definition to true
@@ -1333,7 +1333,7 @@ $$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace function set_installed_extension_version_from_name()
+create function set_installed_extension_version_from_name()
     returns trigger
     set search_path from current
     language plpgsql
@@ -1413,7 +1413,7 @@ $md$;
 
 --------------------------------------------------------------------------------------------------------------
 
-create or replace procedure test__set_installed_extension_version_from_name()
+create procedure test__set_installed_extension_version_from_name()
     set search_path from current
     set plpgsql.check_asserts to true
     set pg_readme.include_this_routine_definition to true

@@ -1,4 +1,4 @@
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
+-- Complain if script is sourced in `psql`, rather than via `CREATE EXTENSION`.
 \echo Use "CREATE EXTENSION pg_utility_trigger_functions" to load this file. \quit
 
 --------------------------------------------------------------------------------------------------------------
@@ -17,6 +17,22 @@ PostgreSQL projects.
 Feel free to copy-paste individual functions if you don't want to introduce an
 extension dependency into your own extension/project.  Just try to respect the
 PostgreSQL license that this extension was released under.
+
+## Authors and contributors
+
+* [Rowan](https://www.bigsmoke.us/) originated this extension in 2022 while
+  developing the PostgreSQL backend for the [FlashMQ SaaS MQTT cloud
+  broker](https://www.flashmq.com/).  Rowan does not like to see himself as a
+  tech person or a tech writer, but, much to his chagrin, [he
+  _is_](https://blog.bigsmoke.us/category/technology). Some of his chagrin
+  about his disdain for the IT industry he poured into a book: [_Why
+  Programming Still Sucks_](https://www.whyprogrammingstillsucks.com/).  Much
+  more than a “tech bro”, he identifies as a garden gnome, fairy and ork rolled
+  into one, and his passion is really to [regreen and reenchant his
+  environment](https://sapienshabitat.com/).  One of his proudest achievements
+  is to be the third generation ecological gardener to grow the wild garden
+  around his beautiful [family holiday home in the forest of Norg, Drenthe,
+  the Netherlands](https://www.schuilplaats-norg.nl/) (available for rent!).
 
 <?pg-readme-reference?>
 
@@ -69,7 +85,7 @@ create function pg_utility_trigger_functions_meta_pgxn()
         ,'provides'
         ,('{
             "pg_utility_trigger_functions": {
-                "file": "pg_utility_trigger_functions--1.7.4.sql",
+                "file": "pg_utility_trigger_functions--1.8.0.sql",
                 "version": "' || (
                     select
                         pg_extension.extversion
@@ -372,27 +388,58 @@ create function coalesce_sibling_fields()
     language plpgsql
     as $$
 declare
-    _field_mappings hstore;
+    _select_expressions text;
     _field_values record;
 begin
     assert tg_when = 'BEFORE';
     assert tg_op in ('INSERT', 'UPDATE');
     assert tg_level = 'ROW';
-    assert tg_nargs = 1;
+    assert tg_nargs >= 1;
 
-    _field_mappings := hstore(tg_argv[0]);
-
-    execute 'SELECT '
-            || (
+    if tg_argv[0] ~ '=>' then
+        assert tg_nargs = 1, 'Only a single `hstore` argument may be given.';
+        _select_expressions := (
+            select
+                string_agg(
+                    'coalesce(($1).' || quote_ident(e.key) || ', ($1).' || quote_ident(e.value)
+                        || ') AS ' || quote_ident(e.key)
+                    ,', '
+                )
+            from
+                each(hstore(tg_argv[0])) as e(key, value)
+        );
+    elsif substr(tg_argv[0], 1, 1) = '{' then
+        _select_expressions := (
+            select
+                string_agg(agg.coalesce_expression, ', ')
+            from (
                 select
-                    string_agg(
-                        'coalesce(($1).' || quote_ident(f.key) || ', ($1).' || quote_ident(f.value)
-                        || ') AS ' || quote_ident(f.key)
-                        ,', '
-                    )
+                    'coalesce(($1).' || string_agg(quote_ident(d2.column_name), ', ($1).')
+                        || ') AS ' || quote_ident(d1.arr[1]) as coalesce_expression
                 from
-                    each(_field_mappings) as f
-            )
+                    unnest(tg_argv) with ordinality as arg(array_string, n)
+                cross join lateral (
+                    select
+                        arg.array_string::text[] as arr
+                    ) as d1
+                cross join lateral
+                    unnest(d1.arr) with ordinality as d2(column_name, n)
+                group by
+                    d1.arr
+            ) as agg
+        );
+    else
+        assert tg_nargs > 1;
+        _select_expressions := (
+            select
+                'coalesce(($1).' || string_agg(quote_ident(arg.field_name), ', ($1).')
+                    || ') AS ' || quote_ident(tg_argv[0])
+            from
+                unnest(tg_argv) as arg(field_name)
+        );
+    end if;
+
+    execute 'SELECT ' || _select_expressions
         using NEW
         into _field_values;
 
@@ -429,34 +476,101 @@ create procedure test__coalesce_sibling_fields()
 declare
     _rec record;
 begin
-    create table test__tbl (a text, b text);
-    create trigger coalesce_a_to_b
+    create table test__tbl (a text, b text, c text, x text, y text, z text);
+    create trigger coalesce_with_hstore_arg
         before insert on test__tbl
         for each row
-        execute function coalesce_sibling_fields('a => b');
+        execute function coalesce_sibling_fields('a => b, x => y');
 
     insert into test__tbl
-        (a, b)
+        (a, b, x, y)
     values
-        (null, 'teenager')
+        (null, 'teenager', null, 'boot')
     returning
         *
     into
         _rec
     ;
     assert _rec.a = 'teenager';
-
+    assert _rec.x = 'boot';
 
     insert into test__tbl
-        (a, b)
+        (a, b, x, y)
     values
-        ('adult', 'teenager')
+        ('adult', 'teenager', 'slipper', 'boot')
     returning
         *
     into
         _rec
     ;
     assert _rec.a = 'adult';
+    assert _rec.x = 'slipper';
+
+    drop trigger coalesce_with_hstore_arg
+        on test__tbl;
+
+    ---
+
+    create trigger coalesce_with_multiple_args
+        before insert on test__tbl
+        for each row
+        execute function coalesce_sibling_fields('a', 'b', 'c');
+
+    insert into test__tbl
+        (a, b, c)
+    values
+        (null, null, 'child')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'child';
+
+    insert into test__tbl
+        (a, b, c)
+    values
+        ('adult', null, 'child')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'adult';
+
+    drop trigger coalesce_with_multiple_args
+        on test__tbl;
+
+    ---
+
+    create trigger coalesce_with_array_args
+        before insert on test__tbl
+        for each row
+        execute function coalesce_sibling_fields('{a, b, c}', '{x, y}');
+
+    insert into test__tbl
+        (a, b, c, x, y)
+    values
+        (null, null, 'child', null, 'boot')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'child';
+    assert _rec.x = 'boot';
+
+    insert into test__tbl
+        (a, b, c, x, y)
+    values
+        ('adult', null, 'child', 'slipper', 'boot')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'adult';
+    assert _rec.x = 'slipper';
 
     raise transaction_rollback;
 exception

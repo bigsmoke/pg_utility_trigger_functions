@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.7.5
-pg_readme_generated_at: 2023-05-13 16:10:48.096502+01
+pg_extension_version: 1.8.0
+pg_readme_generated_at: 2023-05-14 10:45:51.420959+01
 pg_readme_version: 0.6.3
 ---
 
@@ -17,6 +17,22 @@ PostgreSQL projects.
 Feel free to copy-paste individual functions if you don't want to introduce an
 extension dependency into your own extension/project.  Just try to respect the
 PostgreSQL license that this extension was released under.
+
+## Authors and contributors
+
+* [Rowan](https://www.bigsmoke.us/) originated this extension in 2022 while
+  developing the PostgreSQL backend for the [FlashMQ SaaS MQTT cloud
+  broker](https://www.flashmq.com/).  Rowan does not like to see himself as a
+  tech person or a tech writer, but, much to his chagrin, [he
+  _is_](https://blog.bigsmoke.us/category/technology). Some of his chagrin
+  about his disdain for the IT industry he poured into a book: [_Why
+  Programming Still Sucks_](https://www.whyprogrammingstillsucks.com/).  Much
+  more than a “tech bro”, he identifies as a garden gnome, fairy and ork rolled
+  into one, and his passion is really to [regreen and reenchant his
+  environment](https://sapienshabitat.com/).  One of his proudest achievements
+  is to be the third generation ecological gardener to grow the wild garden
+  around his beautiful [family holiday home in the forest of Norg, Drenthe,
+  the Netherlands](https://www.schuilplaats-norg.nl/) (available for rent!).
 
 ## Object reference
 
@@ -232,33 +248,101 @@ AS $procedure$
 declare
     _rec record;
 begin
-    create table test__tbl (a text, b text);
-    create trigger coalesce_a_to_b
+    create table test__tbl (a text, b text, c text, x text, y text, z text);
+    create trigger coalesce_with_hstore_arg
         before insert on test__tbl
         for each row
-        execute function coalesce_sibling_fields('a => b');
+        execute function coalesce_sibling_fields('a => b, x => y');
 
     insert into test__tbl
-        (a, b)
+        (a, b, x, y)
     values
-        (null, 'teenager')
+        (null, 'teenager', null, 'boot')
     returning
         *
     into
         _rec
     ;
     assert _rec.a = 'teenager';
+    assert _rec.x = 'boot';
 
     insert into test__tbl
-        (a, b)
+        (a, b, x, y)
     values
-        ('adult', 'teenager')
+        ('adult', 'teenager', 'slipper', 'boot')
     returning
         *
     into
         _rec
     ;
     assert _rec.a = 'adult';
+    assert _rec.x = 'slipper';
+
+    drop trigger coalesce_with_hstore_arg
+        on test__tbl;
+
+    ---
+
+    create trigger coalesce_with_multiple_args
+        before insert on test__tbl
+        for each row
+        execute function coalesce_sibling_fields('a', 'b', 'c');
+
+    insert into test__tbl
+        (a, b, c)
+    values
+        (null, null, 'child')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'child';
+
+    insert into test__tbl
+        (a, b, c)
+    values
+        ('adult', null, 'child')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'adult';
+
+    drop trigger coalesce_with_multiple_args
+        on test__tbl;
+
+    ---
+
+    create trigger coalesce_with_array_args
+        before insert on test__tbl
+        for each row
+        execute function coalesce_sibling_fields('{a, b, c}', '{x, y}');
+
+    insert into test__tbl
+        (a, b, c, x, y)
+    values
+        (null, null, 'child', null, 'boot')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'child';
+    assert _rec.x = 'boot';
+
+    insert into test__tbl
+        (a, b, c, x, y)
+    values
+        ('adult', null, 'child', 'slipper', 'boot')
+    returning
+        *
+    into
+        _rec
+    ;
+    assert _rec.a = 'adult';
+    assert _rec.x = 'slipper';
 
     raise transaction_rollback;
 exception
