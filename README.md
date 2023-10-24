@@ -1,7 +1,7 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.9.0
-pg_readme_generated_at: 2023-10-24 13:32:18.142372+01
+pg_extension_version: 1.9.1
+pg_readme_generated_at: 2023-10-24 16:12:33.629183+01
 pg_readme_version: 0.6.4
 ---
 
