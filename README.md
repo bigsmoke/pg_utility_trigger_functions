@@ -1,8 +1,8 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.9.1
-pg_readme_generated_at: 2023-10-24 16:12:33.629183+01
-pg_readme_version: 0.6.4
+pg_extension_version: 1.9.2
+pg_readme_generated_at: 2023-11-28 18:03:04.712823+00
+pg_readme_version: 0.6.5
 ---
 
 # `pg_utility_trigger_functions`
@@ -60,7 +60,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `copy_fields_from_foreign_table()`
 
@@ -87,7 +87,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `debug_row()`
 
@@ -122,7 +122,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `no_delete()`
 
@@ -144,7 +144,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `overwrite_composite_field_in_referencing_table()`
 
@@ -165,7 +165,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `overwrite_fields_in_referencing_table()`
 
@@ -193,7 +193,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Function: `pg_utility_trigger_functions_meta_pgxn()`
 
@@ -218,7 +218,7 @@ Function return type: `text`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET pg_readme.include_view_definitions TO true`
   *  `SET pg_readme.include_routine_definitions_like TO {test__%}`
 
@@ -234,20 +234,20 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 #### Procedure: `test__coalesce_sibling_fields()`
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
   *  `SET pg_readme.include_this_routine_definition TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__coalesce_sibling_fields()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
  SET "pg_readme.include_this_routine_definition" TO 'true'
 AS $procedure$
@@ -368,13 +368,13 @@ dependencies to a minimum.
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__copy_fields_from_foreign_table()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
 AS $procedure$
 declare
@@ -490,13 +490,13 @@ dependencies to a minimum.
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__fallback_to_fields_from_foreign_table()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
 AS $procedure$
 declare
@@ -642,13 +642,13 @@ dependencies to a minimum.
 Procedure-local settings:
 
   *  `SET plpgsql.check_asserts TO true`
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__no_delete()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
 AS $procedure$
 begin
     create table test__tbl (id int);
@@ -677,13 +677,13 @@ dependencies to a minimum.
 Procedure-local settings:
 
   *  `SET plpgsql.check_asserts TO true`
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__nullify_columns()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
 AS $procedure$
 begin
     create table test__tbl (id int, a text, b timestamp default now());
@@ -716,14 +716,14 @@ $procedure$
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
   *  `SET pg_readme.include_this_routine_definition TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__overwrite_composite_field_in_referencing_table()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
  SET "pg_readme.include_this_routine_definition" TO 'true'
 AS $procedure$
@@ -801,14 +801,14 @@ $procedure$
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
   *  `SET pg_readme.include_this_routine_definition TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__overwrite_fields_in_referencing_table()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
  SET "pg_readme.include_this_routine_definition" TO 'true'
 AS $procedure$
@@ -958,14 +958,14 @@ $procedure$
 
 Procedure-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
   *  `SET plpgsql.check_asserts TO true`
   *  `SET pg_readme.include_this_routine_definition TO true`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__set_installed_extension_version_from_name()
  LANGUAGE plpgsql
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
  SET "plpgsql.check_asserts" TO 'true'
  SET "pg_readme.include_this_routine_definition" TO 'true'
 AS $procedure$
@@ -1094,13 +1094,13 @@ dependencies to a minimum.
 Procedure-local settings:
 
   *  `SET plpgsql.check_asserts TO true`
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 ```sql
 CREATE OR REPLACE PROCEDURE ext.test__update_updated_at()
  LANGUAGE plpgsql
  SET "plpgsql.check_asserts" TO 'true'
- SET search_path TO 'ext', 'public', 'pg_temp'
+ SET search_path TO 'ext', 'ext', 'pg_temp'
 AS $procedure$
 begin
     create table test__tbl (val int, updated_at timestamptz);
@@ -1146,7 +1146,7 @@ Function return type: `trigger`
 
 Function-local settings:
 
-  *  `SET search_path TO ext, public, pg_temp`
+  *  `SET search_path TO ext, ext, pg_temp`
 
 ## Colophon
 

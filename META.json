@@ -21,13 +21,13 @@
             }
         }
     },
-    "version": "1.9.1",
+    "version": "1.9.2",
     "abstract": "Some pet trigger functions that the extension author likes to follow him through various PostgreSQL projects.",
     "provides": {
         "pg_utility_trigger_functions": {
-            "file": "pg_utility_trigger_functions--1.9.1.sql",
+            "file": "pg_utility_trigger_functions--1.9.2.sql",
             "docfile": "README.md",
-            "version": "1.9.1"
+            "version": "1.9.2"
         }
     },
     "meta-spec": {
