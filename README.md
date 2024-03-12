@@ -1,8 +1,8 @@
 ---
 pg_extension_name: pg_utility_trigger_functions
-pg_extension_version: 1.9.2
-pg_readme_generated_at: 2023-11-28 18:03:04.712823+00
-pg_readme_version: 0.6.5
+pg_extension_version: 1.9.3
+pg_readme_generated_at: 2024-03-12 14:42:34.040389+00
+pg_readme_version: 0.6.6
 ---
 
 # `pg_utility_trigger_functions`
@@ -521,10 +521,10 @@ begin
     create table test__b (
         a_id int
             not null
-            references test__a(a_id)
         ,val_1 text
         ,val_2 text
         ,val_3 text
+        ,constraint b_to_a foreign key (a_id) references test__a(a_id) deferrable initially deferred
     );
 
     <<trigger_for_all_same_named_columns>>
@@ -551,6 +551,17 @@ begin
 
         assert _b.val_1 = 'One' and _b.val_2 = 'Un',
             'Local NOT NULL values should have been preserved.';
+
+        <<missing_fk_target>>
+        begin
+            set constraints b_to_a deferred;
+            insert into test__b (a_id, val_1, val_2, val_3)
+                values (3, 'Three', 'Tres', null)
+                returning *
+                into _b;
+
+            assert _b.val_1 = 'Three' and _b.val_2 = 'Tres' and _b.val_3 is null;
+        end missing_fk_target;
     end;
 
     <<trigger_with_explicit_column_names>>
